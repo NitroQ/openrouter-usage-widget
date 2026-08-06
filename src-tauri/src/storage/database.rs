@@ -391,6 +391,15 @@ impl Database {
             .map_err(|e| AppError::StorageError(format!("Failed to deactivate profiles: {e}")))?;
         Ok(())
     }
+
+    pub fn clear_all_data(&self) -> AppResult<()> {
+        let conn = self.conn.lock().map_err(|e| AppError::StorageError(format!("Lock poisoned: {e}")))?;
+        for table in ["daily_activity_details", "daily_usage", "refresh_snapshots", "credential_profiles"] {
+            conn.execute(&format!("DELETE FROM {table}"), [])
+                .map_err(|e| AppError::StorageError(format!("Failed to clear {table}: {e}")))?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -450,6 +459,18 @@ mod tests {
         db.deactivate_all_profiles().unwrap();
         let profile = db.get_active_credential_profile().unwrap();
         assert!(profile.is_none());
+    }
+
+    #[test]
+    fn clear_all_data_removes_profiles_and_history() {
+        let db = setup_db();
+        let profile_id = db.create_credential_profile("standard", "fp1", None).unwrap();
+        db.upsert_daily_usage(profile_id, "2026-08-05", 0.25, 0.0, 1, 1, 0, 1, "standard_key_snapshot", "last_seen").unwrap();
+
+        db.clear_all_data().unwrap();
+
+        assert!(db.get_active_credential_profile().unwrap().is_none());
+        assert!(db.get_daily_usage(profile_id, 365).unwrap().is_empty());
     }
 
     #[test]

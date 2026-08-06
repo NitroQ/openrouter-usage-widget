@@ -43,6 +43,11 @@ pub fn run() {
             // Show the main widget window and apply saved window settings
             if let Some(window) = app.get_webview_window("main-widget") {
                 let mut s = crate::storage::settings::get_settings().unwrap_or_default();
+                if s.launch_at_startup {
+                    let _ = tauri_plugin_autostart::ManagerExt::autolaunch(app).enable();
+                } else {
+                    let _ = tauri_plugin_autostart::ManagerExt::autolaunch(app).disable();
+                }
                 if s.show_in_taskbar {
                     s.show_in_taskbar = false;
                     let _ = crate::storage::settings::save_settings(&s);
@@ -76,6 +81,7 @@ pub fn run() {
             commands::credentials::validate_and_save_credential,
             commands::credentials::replace_credential,
             commands::credentials::forget_credential,
+            commands::credentials::reset_app_data,
             commands::dashboard::refresh_dashboard,
             commands::dashboard::get_cached_dashboard,
             commands::history::get_usage_history,

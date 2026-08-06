@@ -8,12 +8,13 @@ import type { DailyUsagePoint } from "../types/dashboard";
 import { WidgetHeader } from "../components/WidgetHeader";
 import { MetricCard } from "../components/MetricCard";
 import { ConnectionStatus } from "../components/ConnectionStatus";
+import { SetupRequiredState } from "../components/SetupRequiredState";
 
 type ChartMode = "daily" | "monthly";
 
 export function WidgetPage() {
   const { data, loading, refresh } = useDashboard(60000);
-  const { settings } = useSettings();
+  const { settings, loading: settingsLoading } = useSettings();
   const [view, setView] = useState<"overview" | "chart">("overview");
   const [chartMode, setChartMode] = useState<ChartMode>("daily");
   const [history, setHistory] = useState<DailyUsagePoint[]>([]);
@@ -95,6 +96,7 @@ export function WidgetPage() {
   const isDaily = chartMode === "daily";
   const chartData = isDaily ? dailyData : monthlyData;
   const maxUsage = Math.max(...chartData.map((d) => d.usage), 0.01);
+  const showSetupRequired = !settingsLoading && !settings.configured;
 
   return (
     <div
@@ -104,7 +106,9 @@ export function WidgetPage() {
       <WidgetHeader mode={data?.mode ?? "standard"} />
 
       <div className="flex-1 px-3 pb-2 flex flex-col justify-between min-h-0">
-        {view === "overview" ? (
+        {showSetupRequired ? (
+          <SetupRequiredState onOpenSettings={openSettings} />
+        ) : view === "overview" ? (
           <div className="space-y-0.5">
             <MetricCard label={data?.primaryMetric.label ?? "Remaining"} value={primaryValue} />
             {hasLimit && <MetricCard label="Limit" value={formatCurrency(data.limit)} />}
@@ -146,7 +150,7 @@ export function WidgetPage() {
         )}
 
         {/* Footer */}
-        <div className={view === "chart" ? "space-y-1" : "space-y-2"}>
+        {!showSetupRequired && <div className={view === "chart" ? "space-y-1" : "space-y-2"}>
           {view === "overview" && (
             <ConnectionStatus
               status={data?.status ?? "offline"}
@@ -178,7 +182,7 @@ export function WidgetPage() {
               ⚙
             </button>
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );

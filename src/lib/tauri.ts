@@ -18,6 +18,10 @@ export async function forgetCredential(): Promise<void> {
   return tauriInvoke("forget_credential");
 }
 
+export async function resetAppData(preserveDatabase: boolean): Promise<void> {
+  return tauriInvoke("reset_app_data", { preserveDatabase });
+}
+
 export async function refreshDashboard(): Promise<DashboardData> {
   return tauriInvoke("refresh_dashboard");
 }
