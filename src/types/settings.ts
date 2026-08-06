@@ -1,6 +1,30 @@
 export type Theme = "system" | "light" | "dark";
 export type HistoryTimezone =
+  | "gmt_plus_12"
+  | "gmt_plus_11"
+  | "gmt_plus_10"
+  | "gmt_plus_9"
+  | "gmt_plus_8"
+  | "gmt_plus_7"
+  | "gmt_plus_6"
+  | "gmt_plus_5"
+  | "gmt_plus_4"
+  | "gmt_plus_3"
+  | "gmt_plus_2"
+  | "gmt_plus_1"
   | "utc"
+  | "gmt_minus_1"
+  | "gmt_minus_2"
+  | "gmt_minus_3"
+  | "gmt_minus_4"
+  | "gmt_minus_5"
+  | "gmt_minus_6"
+  | "gmt_minus_7"
+  | "gmt_minus_8"
+  | "gmt_minus_9"
+  | "gmt_minus_10"
+  | "gmt_minus_11"
+  | "gmt_minus_12"
   | "pacific_auckland"
   | "australia_sydney"
   | "asia_tokyo"
@@ -26,7 +50,31 @@ export type HistoryTimezone =
   | "pacific_honolulu";
 
 export const TIMEZONE_OPTIONS: { value: HistoryTimezone; label: string }[] = [
-  { value: "utc", label: "UTC" },
+  { value: "gmt_plus_12", label: "GMT+12" },
+  { value: "gmt_plus_11", label: "GMT+11" },
+  { value: "gmt_plus_10", label: "GMT+10" },
+  { value: "gmt_plus_9", label: "GMT+9" },
+  { value: "gmt_plus_8", label: "GMT+8" },
+  { value: "gmt_plus_7", label: "GMT+7" },
+  { value: "gmt_plus_6", label: "GMT+6" },
+  { value: "gmt_plus_5", label: "GMT+5" },
+  { value: "gmt_plus_4", label: "GMT+4" },
+  { value: "gmt_plus_3", label: "GMT+3" },
+  { value: "gmt_plus_2", label: "GMT+2" },
+  { value: "gmt_plus_1", label: "GMT+1" },
+  { value: "utc", label: "GMT+0 (UTC)" },
+  { value: "gmt_minus_1", label: "GMT-1" },
+  { value: "gmt_minus_2", label: "GMT-2" },
+  { value: "gmt_minus_3", label: "GMT-3" },
+  { value: "gmt_minus_4", label: "GMT-4" },
+  { value: "gmt_minus_5", label: "GMT-5" },
+  { value: "gmt_minus_6", label: "GMT-6" },
+  { value: "gmt_minus_7", label: "GMT-7" },
+  { value: "gmt_minus_8", label: "GMT-8" },
+  { value: "gmt_minus_9", label: "GMT-9" },
+  { value: "gmt_minus_10", label: "GMT-10" },
+  { value: "gmt_minus_11", label: "GMT-11" },
+  { value: "gmt_minus_12", label: "GMT-12" },
   { value: "pacific_auckland", label: "Pacific/Auckland (GMT+12)" },
   { value: "australia_sydney", label: "Australia/Sydney (GMT+10)" },
   { value: "asia_tokyo", label: "Asia/Tokyo (GMT+9)" },

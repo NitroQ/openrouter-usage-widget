@@ -55,7 +55,8 @@ A desktop widget for monitoring OpenRouter API usage in real-time. Built with Ta
 
 - **OpenRouter API key** -- sign up at [openrouter.ai](https://openrouter.ai)
 - **Windows 10 or 11** with WebView2 runtime (pre-installed on most systems; if missing, download from [Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/))
-- For Linux builds: `libwebkit2gtk-4.1-0`, `libgtk-3-0`, and `libappindicator3-1`
+- For Windows builds: Rust/Cargo, Visual Studio C++ build tools, and the Tauri Windows prerequisites
+- For Linux builds: Rust/Cargo, Node.js, `libwebkit2gtk-4.1-dev`, `libgtk-3-dev`, `libayatana-appindicator3-dev`, and `librsvg2-dev`
 
 ### Install the widget
 
@@ -63,6 +64,13 @@ A desktop widget for monitoring OpenRouter API usage in real-time. Built with Ta
 2. Run the installer or launch the standalone executable.
 3. On first launch, enter your OpenRouter API key in the setup screen.
 4. The widget appears on your desktop and begins polling for usage data.
+
+The NSIS installer can install per-user or system-wide because `installMode` is set to `both`. The installed program is normally under one of these locations:
+
+- Per-user: `%LOCALAPPDATA%\Programs\openrouter-widget\`
+- System-wide: `%ProgramFiles%\openrouter-widget\`
+
+The standalone `.exe` can run from any folder and does not install itself. Application data is stored separately from the executable under `%APPDATA%`, so reinstalling or replacing the `.exe` does not automatically reset settings, credentials, or history.
 
 ---
 
@@ -85,8 +93,7 @@ All settings are accessible from the Settings window (right-click the system tra
 | Refresh on Launch | on / off | on | Poll the API immediately when the app starts |
 | Restore Position | on / off | on | Remember the last window position |
 | History Retention | 30d, 90d, 365d, unlimited | 365d | How long to keep local usage history in SQLite |
-| History Timezone | 24 timezones (UTC through Pacific/Honolulu) | UTC | Timezone for daily history aggregation and chart display |
-| Diagnostic Logs | on / off | off | Enable verbose logging for troubleshooting |
+| History Timezone | GMT+12 through GMT-12, plus named IANA timezones | UTC | Timezone for daily history aggregation and chart display |
 
 ---
 
@@ -194,23 +201,64 @@ npm run tauri build
 
 Output binaries are placed in `src-tauri/target/release/bundle/`.
 
+### Reset local setup
+
+The application stores setup state in the current Windows user profile. The recommended way to reset setup is from **Settings → Reset**:
+
+- **Remove Key and Keep History** removes the API key, deactivates the credential profile, resets preferences, and preserves local SQL usage history.
+- **Clear Key and History** removes the API key, deletes credential profiles and local usage data, resets preferences, and restarts the application on the initial setup screen.
+
+Both actions display a confirmation warning before changing data. If the application cannot be opened, close the widget and remove these items manually:
+
+- `%APPDATA%\openrouter-widget\settings.json`
+- `%APPDATA%\com.nitroq.openrouter-usage-widget\openrouter-monitor.db`
+- `%APPDATA%\com.nitroq.openrouter-usage-widget\.window-state.json`
+- The Windows Credential Manager entry for the `openrouter-widget` service and `openrouter_api_key` account
+
+Deleting the database removes local usage history. The API key must also be removed from Credential Manager because the app checks that store independently of the settings file. Replacing the executable does not reset user-profile data.
+
 ### Build targets
 
 | Platform | Output |
 |---|---|
 | Windows | NSIS installer (`.exe`) and standalone executable |
-| Linux | `.deb` package (Ubuntu/Debian-based) |
+| Linux | `.deb` package (Ubuntu/Debian-based; build on Linux) |
 
 The NSIS installer supports both per-user and system-wide installation.
 
----
+Build the standalone Windows executable and NSIS installer on Windows:
 
+```bash
+npm ci
+npm run tauri build -- --bundles nsis
+```
+
+Outputs:
+
+```text
+src-tauri/target/release/openrouter-widget.exe
+src-tauri/target/release/bundle/nsis/*.exe
+```
+
+Build the `.deb` package from a Linux machine, Linux CI runner, or compatible WSL environment with the Tauri Linux prerequisites installed:
+
+```bash
+npm ci
+sudo apt update
+sudo apt install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+npm run tauri build -- --bundles deb
+```
+
+The package is written to `src-tauri/target/release/bundle/deb/`. A Windows environment cannot directly produce a Linux `.deb` package.
+
+---
+ Widget
 ## Testing
 
 The project includes comprehensive test coverage across both the frontend and backend:
 
-- **Rust backend:** 53 unit tests covering command handlers, API client logic, storage operations, and utility functions
-- **Frontend:** 60 tests using Vitest and Testing Library covering components, hooks, formatters, and type utilities
+- **Rust backend:** Unit tests covering command handlers, API client logic, storage operations, and utility functions
+- **Frontend:** 64 tests using Vitest and Testing Library covering components, hooks, formatters, setup/reset states, and type utilities
 - **TypeScript:** strict mode enabled for full type safety
 
 Run all tests:

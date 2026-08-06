@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { KeyMode, ValidationResult } from "../types/dashboard";
 import type { HistoryRetention, HistoryTimezone } from "../types/settings";
+import { TIMEZONE_OPTIONS } from "../types/settings";
 import { validateAndSaveCredential, saveSettings } from "../lib/tauri";
 import { KeyModeSelector } from "../components/KeyModeSelector";
 
@@ -76,9 +77,15 @@ export function SetupPage() {
         restorePosition: true,
         diagnosticLogs: false,
       });
+      // #region debug-point D:setup-preferences
+      fetch("http://127.0.0.1:7777/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: "reset-setup-flow", runId: "pre", hypothesisId: "D", location: "src/pages/SetupPage.tsx:80", msg: "[DEBUG] Setup preferences saved", data: { keyMode }, ts: Date.now() }) }).catch(() => {});
+      // #endregion
       setStep("finish");
-    } catch {
-      setStep("finish");
+    } catch (error) {
+      // #region debug-point E:setup-preferences-error
+      fetch("http://127.0.0.1:7777/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: "reset-setup-flow", runId: "pre", hypothesisId: "E", location: "src/pages/SetupPage.tsx:83", msg: "[DEBUG] Setup preferences failed", data: { error: String(error) }, ts: Date.now() }) }).catch(() => {});
+      // #endregion
+      setStep("preferences");
     } finally {
       setSaving(false);
     }
@@ -307,8 +314,11 @@ export function SetupPage() {
                   onChange={(e) => setPrefs(p => ({ ...p, historyDisplayTimezone: e.target.value as HistoryTimezone }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="utc">UTC</option>
-                  <option value="asia_manila">Asia/Manila</option>
+                  {TIMEZONE_OPTIONS.map((timezone) => (
+                    <option key={timezone.value} value={timezone.value}>
+                      {timezone.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

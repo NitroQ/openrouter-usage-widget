@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../hooks/useSettings";
 import { useDashboard } from "../hooks/useDashboard";
-import { replaceCredential, forgetCredential, exportUsageHistoryCsv, clearUsageHistory } from "../lib/tauri";
+import { replaceCredential, forgetCredential, resetAppData, exportUsageHistoryCsv, clearUsageHistory } from "../lib/tauri";
 import { formatCurrency } from "../lib/format";
 import { SettingsSection } from "../components/SettingsSection";
 import { KeyModeSelector } from "../components/KeyModeSelector";
 import type { KeyMode } from "../types/dashboard";
 import type { HistoryTimezone } from "../types/settings";
 import { TIMEZONE_OPTIONS } from "../types/settings";
+import { ResetDataSection } from "../components/ResetDataSection";
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export function SettingsPage() {
   const [exporting, setExporting] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const showMessage = (type: "success" | "error", text: string) => {
@@ -37,7 +39,7 @@ export function SettingsPage() {
       if (result.success) {
         showMessage("success", "Key replaced successfully");
         setReplaceKey("");
-        await update({ keyMode: replaceMode });
+        await update({ configured: true, keyMode: replaceMode });
       } else {
         showMessage("error", result.message);
       }
@@ -94,6 +96,34 @@ export function SettingsPage() {
     }
   };
 
+  const handleReset = async (preserveDatabase: boolean) => {
+    const warning = preserveDatabase
+      ? "This will remove the API key from Windows Credential Manager, deactivate the saved credential profile, reset app settings, and return to setup. Local SQL usage history will be preserved. Continue?"
+      : "This will remove the API key from Windows Credential Manager, delete all credential profiles, usage history, snapshots, activity details, and reset app settings. This cannot be undone. Continue?";
+
+    if (!window.confirm(warning)) return;
+
+    setResetting(true);
+    try {
+      // #region debug-point A:reset-command
+      fetch("http://127.0.0.1:7777/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: "reset-setup-flow", runId: "pre", hypothesisId: "A", location: "src/pages/SettingsPage.tsx:108", msg: "[DEBUG] Reset command started", data: { preserveDatabase }, ts: Date.now() }) }).catch(() => {});
+      // #endregion
+      await resetAppData(preserveDatabase);
+      // #region debug-point B:reset-success
+      fetch("http://127.0.0.1:7777/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: "reset-setup-flow", runId: "pre", hypothesisId: "B", location: "src/pages/SettingsPage.tsx:110", msg: "[DEBUG] Reset command succeeded", data: { preserveDatabase }, ts: Date.now() }) }).catch(() => {});
+      // #endregion
+      showMessage("success", preserveDatabase ? "Setup reset; history preserved" : "Setup reset; local data cleared");
+      navigate("/setup", { replace: true });
+      // #region debug-point C:reset-navigation
+      fetch("http://127.0.0.1:7777/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: "reset-setup-flow", runId: "pre", hypothesisId: "C", location: "src/pages/SettingsPage.tsx:113", msg: "[DEBUG] Reset handler navigated to setup", data: {}, ts: Date.now() }) }).catch(() => {});
+      // #endregion
+    } catch (err) {
+      showMessage("error", typeof err === "string" ? err : "Reset failed");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const handleRebuildHistory = async () => {
     setRebuilding(true);
     try {
@@ -117,15 +147,8 @@ export function SettingsPage() {
   return (
     <div className="h-screen bg-gray-50 p-6 overflow-y-auto">
       <div className="max-w-2xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-xl font-bold text-gray-900">Settings</h1>
-          <button
-            onClick={() => navigate("/widget")}
-            className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-100 transition-colors"
-          >
-            &larr; Widget
-          </button>
         </div>
 
         {/* Message Toast */}
@@ -440,6 +463,10 @@ export function SettingsPage() {
               Your API key is stored securely in Windows Credential Manager and is never sent to any server except OpenRouter API directly.
             </p>
           </div>
+        </SettingsSection>
+
+        <SettingsSection title="Reset">
+          <ResetDataSection onReset={handleReset} resetting={resetting} />
         </SettingsSection>
       </div>
     </div>
