@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/* Widget-specific styles */
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+}
+
+.widget-light .text-white {
+  color: #111827 !important;
+}
+
+.widget-light .text-white\/80 {
+  color: #374151 !important;
+}
+
+.widget-light .text-gray-400,
+.widget-light .text-gray-500 {
+  color: #4b5563 !important;
+}
+
+button, input, select, a {
+  -webkit-app-region: no-drag;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 3px;
+}
