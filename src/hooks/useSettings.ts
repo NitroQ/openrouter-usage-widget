@@ -20,6 +20,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   refreshOnLaunch: true,
   restorePosition: true,
   diagnosticLogs: false,
+  lastUpdateCheckAt: null,
+  lastNotifiedVersion: null,
+  lastUpdateReleaseTag: null,
+  lastUpdateAsset: null,
 };
 
 export function useSettings() {

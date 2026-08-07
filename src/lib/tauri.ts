@@ -1,6 +1,7 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import type { DashboardData, ValidationResult, DailyUsagePoint, KeyMode } from "../types/dashboard";
 import type { AppSettings } from "../types/settings";
+import type { UpdateInfo, UpdateStatus } from "../types/update";
 
 export async function getAppState(): Promise<{ configured: boolean; key_mode?: string; key_label?: string }> {
   return tauriInvoke("get_app_state");
@@ -60,4 +61,16 @@ export async function showSettings(): Promise<void> {
 
 export async function quitApplication(): Promise<void> {
   return tauriInvoke("quit_application");
+}
+
+export async function checkForUpdates(): Promise<UpdateInfo> {
+  return tauriInvoke("check_for_updates");
+}
+
+export async function downloadAndInstallUpdate(releaseTag: string, assetName: string): Promise<void> {
+  return tauriInvoke("download_and_install_update", { releaseTag, assetName });
+}
+
+export async function getUpdateStatus(): Promise<UpdateStatus> {
+  return tauriInvoke("get_update_status");
 }

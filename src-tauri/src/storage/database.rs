@@ -81,12 +81,12 @@ impl Database {
                 requests, source, finality, first_refreshed_at_utc, last_refreshed_at_utc, sample_count
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, datetime('now'), datetime('now'), 1)
             ON CONFLICT(credential_profile_id, date_utc) DO UPDATE SET
-                usage = ?3,
-                byok_usage = ?4,
-                prompt_tokens = ?5,
-                completion_tokens = ?6,
-                reasoning_tokens = ?7,
-                requests = ?8,
+                usage = CASE WHEN ?3 = 0 AND usage > 0 THEN usage ELSE ?3 END,
+                byok_usage = CASE WHEN ?4 = 0 AND byok_usage > 0 THEN byok_usage ELSE ?4 END,
+                prompt_tokens = CASE WHEN ?5 = 0 AND prompt_tokens > 0 THEN prompt_tokens ELSE ?5 END,
+                completion_tokens = CASE WHEN ?6 = 0 AND completion_tokens > 0 THEN completion_tokens ELSE ?6 END,
+                reasoning_tokens = CASE WHEN ?7 = 0 AND reasoning_tokens > 0 THEN reasoning_tokens ELSE ?7 END,
+                requests = CASE WHEN ?8 = 0 AND requests > 0 THEN requests ELSE ?8 END,
                 source = ?9,
                 finality = ?10,
                 last_refreshed_at_utc = datetime('now'),
@@ -237,6 +237,14 @@ impl Database {
             params![credential_profile_id, offset],
         )
         .map_err(|e| AppError::StorageError(format!("Failed to delete expired snapshots: {e}")))?;
+
+        conn.execute(
+            "DELETE FROM daily_usage
+             WHERE credential_profile_id = ?1
+               AND date_utc < date('now', ?2)",
+            params![credential_profile_id, offset],
+        )
+        .map_err(|e| AppError::StorageError(format!("Failed to delete expired daily usage: {e}")))?;
 
         Ok(())
     }
@@ -526,6 +534,20 @@ mod tests {
         assert_eq!(points.len(), 1);
         assert_eq!(points[0].usage, 0.50);
         assert_eq!(points[0].prompt_tokens, 2000);
+    }
+
+    #[test]
+    fn a_zero_snapshot_does_not_erase_previous_day_usage() {
+        let db = setup_db();
+        let profile_id = db.create_credential_profile("standard", "fp1", None).unwrap();
+
+        db.upsert_daily_usage(profile_id, "2026-08-05", 0.50, 0.0, 2000, 1000, 400, 20, "standard_key_snapshot", "last_seen").unwrap();
+        db.upsert_daily_usage(profile_id, "2026-08-05", 0.0, 0.0, 0, 0, 0, 0, "standard_key_snapshot", "last_seen").unwrap();
+
+        let points = db.get_daily_usage(profile_id, 365).unwrap();
+        assert_eq!(points[0].usage, 0.50);
+        assert_eq!(points[0].prompt_tokens, 2000);
+        assert_eq!(points[0].requests, 20);
     }
 
     #[test]

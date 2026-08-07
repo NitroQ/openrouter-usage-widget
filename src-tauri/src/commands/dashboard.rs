@@ -79,6 +79,26 @@ pub async fn refresh_dashboard(db: State<'_, Database>) -> AppResult<DashboardDa
         )?;
     }
 
+    if mode == "standard" {
+        if let Some(today) = dashboard.usage.today {
+            let today_utc = chrono::Utc::now().format("%Y-%m-%d").to_string();
+            if !dashboard.history.latest.iter().any(|point| point.date_utc == today_utc) {
+                db.upsert_daily_usage(
+                    profile_id,
+                    &today_utc,
+                    today,
+                    dashboard.usage.byok_today.unwrap_or(0.0),
+                    0,
+                    0,
+                    0,
+                    0,
+                    "standard_key_snapshot",
+                    "last_seen",
+                )?;
+            }
+        }
+    }
+
     // Fetch and save activity details for management keys
     if mode == "management" {
         if let Ok(activity_resp) = crate::openrouter::client::get_activity(&api_key).await {
