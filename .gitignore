@@ -29,6 +29,9 @@ lerna-debug.log*
 .env.local
 .env.*.local
 
+# Signing keys (NEVER commit)
+keys/
+
 # Debugging artifacts
 debug-*.md
 .dbg/

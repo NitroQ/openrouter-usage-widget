@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../hooks/useSettings";
 import { useDashboard } from "../hooks/useDashboard";
-import { replaceCredential, forgetCredential, resetAppData, exportUsageHistoryCsv, clearUsageHistory } from "../lib/tauri";
+import { replaceCredential, forgetCredential, resetAppData, exportUsageHistoryCsv, clearUsageHistory, checkForUpdates, downloadAndInstallUpdate, getUpdateStatus } from "../lib/tauri";
 import { formatCurrency } from "../lib/format";
 import { SettingsSection } from "../components/SettingsSection";
 import { KeyModeSelector } from "../components/KeyModeSelector";
 import type { KeyMode } from "../types/dashboard";
-import type { HistoryTimezone } from "../types/settings";
-import { TIMEZONE_OPTIONS } from "../types/settings";
+import type { UpdateInfo } from "../types/update";
 import { ResetDataSection } from "../components/ResetDataSection";
 
 export function SettingsPage() {
@@ -25,6 +25,59 @@ export function SettingsPage() {
   const [rebuilding, setRebuilding] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [downloadingUpdate, setDownloadingUpdate] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listen<UpdateInfo>("update-status", (event) => setUpdateInfo(event.payload))
+      .then((cleanup) => { unlisten = cleanup; });
+    getUpdateStatus()
+      .then((status) => {
+        if (status.latestVersion) {
+          setUpdateInfo({
+            currentVersion: status.currentVersion,
+            latestVersion: status.latestVersion,
+            updateAvailable: status.updateAvailable,
+            releaseUrl: "https://github.com/NitroQ/openrouter-usage-widget/releases/latest",
+            assets: status.asset ? [status.asset] : [],
+            releaseTag: settings.lastUpdateReleaseTag ?? `v${status.latestVersion}`,
+            compatibleAssetAvailable: status.compatibleAssetAvailable,
+            asset: status.asset,
+          });
+        }
+      })
+      .catch(() => {});
+    return () => unlisten?.();
+  }, [settings.lastUpdateReleaseTag]);
+
+  const handleCheckUpdates = useCallback(async () => {
+    setCheckingUpdate(true);
+    setUpdateError(null);
+    try {
+      const info = await checkForUpdates();
+      setUpdateInfo(info);
+    } catch (err: any) {
+      setUpdateError(err?.message || "Failed to check for updates");
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }, []);
+
+  const handleDownloadInstall = async () => {
+    setDownloadingUpdate(true);
+    setUpdateError(null);
+    try {
+      if (!updateInfo?.releaseTag || !updateInfo.assets[0]?.name) return;
+      if (!window.confirm(`Install version ${updateInfo.latestVersion} using ${updateInfo.assets[0].name}? The application will close.`)) return;
+      await downloadAndInstallUpdate(updateInfo.releaseTag, updateInfo.assets[0].name);
+    } catch (err: any) {
+      setUpdateError(err?.message || "Failed to download update");
+      setDownloadingUpdate(false);
+    }
+  };
 
   const showMessage = (type: "success" | "error", text: string) => {
     setMessage({ type, text });
@@ -357,18 +410,7 @@ export function SettingsPage() {
                   ` \u2014 ${data.history.availableDays} days recorded`}
               </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Display timezone</label>
-              <select
-                value={settings.historyDisplayTimezone}
-                onChange={(e) => update({ historyDisplayTimezone: e.target.value as HistoryTimezone })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {TIMEZONE_OPTIONS.map((tz) => (
-                  <option key={tz.value} value={tz.value}>{tz.label}</option>
-                ))}
-              </select>
-            </div>
+            <p className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">Daily usage is tracked in UTC, matching OpenRouter&apos;s daily reset boundary at 00:00 UTC.</p>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Retention</label>
               <select
@@ -462,6 +504,61 @@ export function SettingsPage() {
             <p className="text-xs text-gray-400">
               Your API key is stored securely in Windows Credential Manager and is never sent to any server except OpenRouter API directly.
             </p>
+          </div>
+        </SettingsSection>
+
+        {/* Updates Section */}
+        <SettingsSection title="Updates">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Current version</span>
+              <span className="text-sm text-gray-500">{updateInfo?.currentVersion ?? "Loading..."}</span>
+            </div>
+            <button
+              onClick={handleCheckUpdates}
+              disabled={checkingUpdate || downloadingUpdate}
+              className="px-4 py-2 bg-blue-50 text-blue-600 text-sm rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 w-full"
+            >
+              {checkingUpdate ? "Checking..." : "Check for Updates"}
+            </button>
+            {updateError && (
+              <p className="text-xs text-red-500">{updateError}</p>
+            )}
+            {updateInfo && !checkingUpdate && (
+              <div className="space-y-2">
+                {updateInfo.updateAvailable && updateInfo.compatibleAssetAvailable ? (
+                  <>
+                    <p className="text-sm text-green-600">
+                      Update available: v{updateInfo.latestVersion}
+                    </p>
+                    <a
+                      href={updateInfo.releaseUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-xs text-blue-500 hover:underline"
+                    >
+                      View release on GitHub
+                    </a>
+                    <button
+                      onClick={handleDownloadInstall}
+                      disabled={downloadingUpdate}
+                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 w-full"
+                    >
+                      {downloadingUpdate ? "Downloading..." : "Download & Install"}
+                    </button>
+                  </>
+                ) : updateInfo.updateAvailable ? (
+                  <p className="text-sm text-amber-600">No compatible package found for this platform.</p>
+                ) : (
+                  <p className="text-sm text-gray-500">You're up to date!</p>
+                )}
+              </div>
+            )}
+            {settings.lastUpdateCheckAt && (
+              <p className="text-xs text-gray-400">
+                Last checked: {new Date(settings.lastUpdateCheckAt).toLocaleDateString()}
+              </p>
+            )}
           </div>
         </SettingsSection>
 

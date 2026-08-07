@@ -29,7 +29,7 @@ A desktop widget for monitoring OpenRouter API usage in real-time. Built with Ta
 **Configuration**
 - Refresh intervals: 30s, 1m, 2m, 5m with exponential backoff on failures
 - History retention: 30, 90, 365 days, or unlimited
-- 24 timezone options for history display
+- UTC-based history tracking aligned with OpenRouter's daily reset at 00:00 UTC
 - Auto-launch at startup
 - Start minimized
 - Show in taskbar
@@ -96,9 +96,14 @@ All settings are accessible from the Settings window (right-click the system tra
 | Refresh on Launch | on / off | on | Poll the API immediately when the app starts |
 | Restore Position | on / off | on | Remember the last window position |
 | History Retention | 30d, 90d, 365d, unlimited | 365d | How long to keep local usage history in SQLite |
-| History Timezone | GMT+12 through GMT-12, plus named IANA timezones | UTC | Timezone for daily history aggregation and chart display |
+| History Timezone | UTC only | UTC | OpenRouter resets daily usage at 00:00 UTC, so the widget uses UTC to keep stored totals and chart dates aligned with the API |
+| Auto-Update | Check GitHub Releases | enabled | Checks NitroQ/openrouter-usage-widget releases every 15 days; downloads and installs a verified Windows x64 `.exe` or Linux x64 `.deb` |
 
 ---
+
+### Update release requirements
+
+Updates are accepted only from the `NitroQ/openrouter-usage-widget` GitHub repository. Supported packages must be named with the product, version, operating system, and architecture, for example `openrouter-widget_1.2.3_windows-x64.exe` or `openrouter-widget_1.2.3_linux-amd64.deb`. Each package must have a matching detached Ed25519 signature asset with the additional `.sig` suffix. The application rejects unsigned, ambiguous, malformed, unsupported, or oversized packages before installation.
 
 ## Architecture
 

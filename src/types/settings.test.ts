@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TIMEZONE_OPTIONS } from "./settings";
-import type { AppSettings, Theme, HistoryTimezone, HistoryRetention } from "./settings";
+import type { AppSettings, Theme, HistoryRetention } from "./settings";
 
 describe("Settings types", () => {
   it("AppSettings can be constructed with all fields", () => {
@@ -33,19 +32,6 @@ describe("Settings types", () => {
     expect(themes.length).toBe(3);
   });
 
-  it("HistoryTimezone accepts valid values", () => {
-    const timezones: HistoryTimezone[] = ["gmt_plus_12", "utc", "gmt_minus_12"];
-    expect(timezones.length).toBe(3);
-  });
-
-  it("offers every whole-hour GMT offset from plus twelve to minus twelve", () => {
-    const offsets = TIMEZONE_OPTIONS.filter((option) => option.label.startsWith("GMT"));
-
-    expect(offsets).toHaveLength(25);
-    expect(offsets[0].label).toBe("GMT+12");
-    expect(offsets[offsets.length - 1].label).toBe("GMT-12");
-  });
-
   it("HistoryRetention accepts valid values", () => {
     const retentions: HistoryRetention[] = [30, 90, 365, -1];
     expect(retentions).toContain(-1);
@@ -65,13 +51,12 @@ describe("Settings types", () => {
       opacity: 1.0,
       compactMode: false,
       historyRetentionDays: 90,
-      historyDisplayTimezone: "asia_manila",
+      historyDisplayTimezone: "utc",
       showInTaskbar: true,
       refreshOnLaunch: false,
       restorePosition: false,
       diagnosticLogs: true,
     };
     expect(settings.keyMode).toBe("management");
-    expect(settings.historyDisplayTimezone).toBe("asia_manila");
   });
 });

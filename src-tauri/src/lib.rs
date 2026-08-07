@@ -1,3 +1,4 @@
+use tauri::Emitter;
 use tauri::Manager;
 mod commands;
 mod error;
@@ -74,6 +75,22 @@ pub fn run() {
                 });
             }
 
+            let startup_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let should_check = crate::storage::settings::get_settings()
+                    .ok()
+                    .and_then(|settings| settings.last_update_check_at)
+                    .map(|last| chrono::DateTime::parse_from_rfc3339(&last)
+                        .map(|timestamp| chrono::Utc::now().signed_duration_since(timestamp.with_timezone(&chrono::Utc)).num_days() >= 15)
+                        .unwrap_or(true))
+                    .unwrap_or(true);
+                if should_check {
+                    if let Ok(info) = commands::update::check_for_updates().await {
+                        let _ = startup_handle.emit("update-status", info);
+                    }
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -89,6 +106,9 @@ pub fn run() {
             commands::history::clear_usage_history,
             commands::settings::get_settings,
             commands::settings::save_settings,
+            commands::update::check_for_updates,
+            commands::update::download_and_install_update,
+            commands::update::get_update_status,
             commands::windows::show_widget,
             commands::windows::show_settings,
             commands::windows::quit_application,

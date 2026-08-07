@@ -9,7 +9,7 @@ export function UsageHistory({ data }: Props) {
 
   return (
     <div className="p-4">
-      <h3 className="text-sm font-semibold mb-3">Daily Usage (UTC)</h3>
+      <h3 className="text-sm font-semibold mb-3">Daily Usage — UTC</h3>
       <div className="flex items-end gap-1 h-32">
         {data.slice(-14).map((d) => (
           <div key={d.dateUtc} className="flex-1 flex flex-col items-center gap-1">
