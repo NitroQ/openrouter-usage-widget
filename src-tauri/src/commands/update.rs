@@ -71,11 +71,11 @@ fn is_newer(latest: &str, current: &str) -> bool {
     }
 }
 
-fn platform_asset_tokens() -> Option<(&'static str, &'static str, &'static str)> {
+fn platform_asset_tokens() -> Option<(&'static str, &'static [&'static str])> {
     if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
-        Some((".exe", "windows", "x64"))
+        Some((".exe", &["x64", "x86_64", "amd64"]))
     } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
-        Some((".deb", "linux", "amd64"))
+        Some((".deb", &["amd64", "x86_64"]))
     } else {
         None
     }
@@ -89,13 +89,12 @@ fn is_safe_asset_name(name: &str) -> bool {
 }
 
 fn select_asset(release: &GithubRelease) -> AppResult<Option<ReleaseAsset>> {
-    let Some((extension, os, arch)) = platform_asset_tokens() else {
+    let Some((extension, arch_tokens)) = platform_asset_tokens() else {
         return Ok(None);
     };
     let candidates: Vec<&GithubAsset> = release.assets.iter().filter(|asset| {
         asset.name.starts_with("openrouter-widget_")
-            && asset.name.contains(os)
-            && asset.name.contains(arch)
+            && arch_tokens.iter().any(|token| asset.name.contains(token))
             && asset.name.ends_with(extension)
             && is_safe_asset_name(&asset.name)
     }).collect();
