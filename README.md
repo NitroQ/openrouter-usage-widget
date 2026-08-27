@@ -45,8 +45,10 @@ A desktop widget for monitoring OpenRouter API usage in real-time. Built with Ta
 
 ## Screenshots
 
-<img width="405" height="276" alt="image (3)" src="https://github.com/user-attachments/assets/b0aa6598-19f1-4275-ab86-d0c371d5242a" />
-<img width="399" height="276" alt="image (2)" src="https://github.com/user-attachments/assets/e9bcb060-9935-4b84-9e77-e844b7f36d78" />
+
+<img width="322" height="401" alt="image" src="https://github.com/user-attachments/assets/a42652b5-653e-492e-a723-c25d49e7a871" /><img width="324" height="217" alt="image" src="https://github.com/user-attachments/assets/d72f028f-e7b6-4423-a1f8-5b750ded918c" /><img width="321" height="413" alt="image" src="https://github.com/user-attachments/assets/3cbe007b-beb8-470e-9ac9-097bd044487e" />
+
+
 
  >The widget renders as a compact overlay on the desktop with a summary view and a toggleable 7-day spend chart.
 
